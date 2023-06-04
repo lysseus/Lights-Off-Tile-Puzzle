@@ -17,32 +17,51 @@
 ;; The world state.
 ;; inst? indicates whether we've already seen the game instructions.
 ;; lights are represented with a natural number betwwn 0 and 511.
-(struct world (inst-seen? lights) #:mutable #:transparent)
+(struct world (inst-seen? lights containers) #:mutable #:transparent)
 
-(define (new-world (init? #f))
+;; Initial world state setup. Tells the program we haven't seen
+;; instructions yet, and builds the containers framework that will
+;; be initialized each time by new-world.
+(define (init-world)  
+  ;; Build the containers list used by clicker functions.
+  ;; This builds the container, button, and label configuraiton
+  ;; in a solved state, which is not used except for the basis
+  ;; of button assignmennt by new-world.
+  (define containers
+    (for/list ([c (range 3)])
+      (make-container (name c)
+                      (y-offset (* c (current-container-button-height)))
+                      (buttons (for/list ([b (range 3)])                               
+                                 (make-button (name b)
+                                              (label (make-label))))))))
+  
+  (world #f 0 containers))
+
+;; Once instructions are seen this funciton will set up
+;; the tile lighting for game play. This function is called
+;; each time the spacebar is pressed. 
+(define (new-world ws)
+  ;; Mark instructions seen.
+  (set-world-inst-seen?! ws #t)
   ;; Compute a natural number representing our lights game tiles.
-  (define lights (random 1 (add1 (expt 2 9))))
+  (set-world-lights! ws (random 1 (add1 (expt 2 9))))
   ;; Set the label values of the lights tiles on or off as indicated
   ;; by the bit values of the natural representing each tile position.
-  (set-lights! lights)
-  (world init? lights))
+  (update-containers! ws)
+  ws)
 
 ;; The spacebar is used to begin an ew game. It also sets
 ;; the initial game flag requesting instructions off.
 (define (key-handler ws ke)
   (cond
-    [(and (key=? ke " ") (false? (world-inst-seen? ws)))
-     (set-world-inst-seen?! ws #t)
-     ws]                   
-    [(key=? ke " ")
-     (new-world #t)]
+    [(key=? ke " ") (new-world ws)]                       
     [else ws]))
 
 ;; Mouse events are handled by the clicke library according to the
-;; definitions described by CONTAINERS.
+;; definitions described by containers.
 (define (mouse-handler ws x y evt)
   (cond [(or (false? (world-inst-seen? ws)) (solved? ws)) (void)]
-        [else (process-containers CONTAINERS ws x y evt)])  
+        [else (process-containers (world-containers ws) ws x y evt)])  
   ws)
 
 ;;;
@@ -98,15 +117,15 @@
   (define n (+ (* 3 cname) bname))
   (define t (hash-ref TOGGLE-HASH n))  
   (define lights (bitwise-xor (world-lights ws) t))
-  (set-lights! lights)
-  (set-world-lights! ws lights))
+  (set-world-lights! ws lights)
+  (update-containers! ws))
 
-(define (set-lights! lights)
+(define (update-containers! ws)
   (for ([n (range 9)])
     (define cname (quotient n 3))
     (define bname (modulo n 3))
-    (define btn (second (find-container/button cname bname CONTAINERS)))
-    (if (bitwise-bit-set? lights n)
+    (define btn (second (find-container/button cname bname (world-containers ws))))
+    (if (bitwise-bit-set? (world-lights ws) n)
         (set-button-label! btn LIGHT-ON)
         (set-button-label! btn LIGHT-OFF))))
 
@@ -127,19 +146,6 @@
 
 (define LIGHT-ON (make-label (bg-color 'white)))
 (define LIGHT-OFF (make-label (bg-color 'black)))
-
-
-;; Build the containers list used by clicker functions.
-;; This builds the container, button, and label configuraiton
-;; in a solved state, which is not used except for the basis
-;; of button assignmennt by new-world.
-(define CONTAINERS
-  (for/list ([c (range 3)])
-    (make-container (name c)
-                    (y-offset (* c (current-container-button-height)))
-                    (buttons (for/list ([b (range 3)])                               
-                               (make-button (name b)
-                                            (label (make-label))))))))
 
 (define (solved? ws) (zero? (world-lights ws)))
 
@@ -205,7 +211,7 @@
 
 ;; Show the unsolved puzzle state.
 (define (render-unsolved ws)
-  (place-containers CONTAINERS
+  (place-containers (world-containers ws)
                     MT))
 
 ;; Show the solved puzzle. 
@@ -219,8 +225,8 @@
    win-img
    (render-unsolved ws)))
 
-(big-bang (new-world)
+(big-bang (init-world)
   (on-mouse mouse-handler)
   (on-key key-handler)
   (to-draw render)
-  (name "LIGHTS OFF PUZZLE"))
+  (name "LIGHTS OUT PUZZLE"))
