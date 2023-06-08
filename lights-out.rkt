@@ -165,12 +165,12 @@
                             INST-FONT-COLOR
                             INST-IMG-WIDTH))
 (define-values (INST2 INST-L2)
-  (text-tok-wrap "- Clicke a corner tile to toggle it and the 3 adjacent tiles." 
+  (text-tok-wrap "- Click a corner tile to toggle it and the 3 adjacent tiles." 
                  INST-FONT-SIZE
                  INST-FONT-COLOR
                  INST-IMG-WIDTH))
 (define-values (INST3 INST-L3)
-  (text-tok-wrap "- Click an edge tile to toggle it and the 2 surounding corner tiles." 
+  (text-tok-wrap "- Click an edge tile to toggle it and the 2 surrounding corner tiles." 
                  INST-FONT-SIZE
                  INST-FONT-COLOR
                  INST-IMG-WIDTH))
