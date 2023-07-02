@@ -11,6 +11,7 @@
 
 (require 2htdp/image
          2htdp/universe
+         utils/struct
          utils/2htdp/clicker
          utils/2htdp/text)
 
@@ -111,9 +112,10 @@
 ;; Toggles the lights associated with container button according to
 ;; the game rules and sets the new lights value.
 ;; Encodes the toggle as a bitwise-xor application.
-(define (toggle-lights! c b ws x-pos y-pos)
-  (define cname (container-name c))
-  (define bname (button-name b))
+(define (toggle-lights!)
+  (define-from-struct clicker-evt (current-clicker-evt) ctn btn ws)
+  (define cname (container-name ctn))
+  (define bname (button-name btn))
   (define n (+ (* 3 cname) bname))
   (define t (hash-ref TOGGLE-HASH n))  
   (define lights (bitwise-xor (world-lights ws) t))
